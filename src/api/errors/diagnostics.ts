@@ -57,7 +57,7 @@ export function clearDiagnostic(uri: vscode.Uri, changeRange: vscode.Range) {
   }
 }
 
-export async function refreshDiagnosticsFromServer(instance: Instance, evfeventInfo: EvfEventInfo) {
+export async function refreshDiagnosticsFromServer(instance: Instance, evfeventInfo: EvfEventInfo, uri?: vscode.Uri) {
   const content = instance.getContent();
 
   if (content) {
@@ -69,7 +69,7 @@ export async function refreshDiagnosticsFromServer(instance: Instance, evfeventI
       clearDiagnostics();
     }
 
-    handleEvfeventLines(lines, instance, evfeventInfo);
+    handleEvfeventLines(lines, instance, evfeventInfo, uri);
   } else {
     throw new Error('Please connect to an IBM i');
   }
@@ -100,7 +100,7 @@ export async function refreshDiagnosticsFromLocal(instance: Instance, evfeventIn
   }
 }
 
-export function handleEvfeventLines(lines: string[], instance: Instance, evfeventInfo: EvfEventInfo) {
+export function handleEvfeventLines(lines: string[], instance: Instance, evfeventInfo: EvfEventInfo, uri?: vscode.Uri) {
   const connection = instance.getConnection();
   const config = instance.getConfig();
   const asp = evfeventInfo.asp ? `${evfeventInfo.asp}/` : ``;
@@ -175,7 +175,7 @@ export function handleEvfeventLines(lines: string[], instance: Instance, evfeven
           // tabs like we do below.
           if (evfeventInfo.extension) {
             const baseName = file.split(`/`).pop();
-            const openFile = Tools.findExistingDocumentByName(`${baseName}.${evfeventInfo.extension}`);
+            const openFile = uri || Tools.findExistingDocumentByName(`${baseName}.${evfeventInfo.extension}`);
             if (openFile) {
               ileDiagnostics.set(openFile, diagnostics);
               continue;

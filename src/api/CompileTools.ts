@@ -397,7 +397,7 @@ export namespace CompileTools {
                         else if (evfeventInfo.object && evfeventInfo.library) {
                           if (chosenAction.command.includes(`*EVENTF`)) {
                             writeEmitter.fire(`Fetching errors for ${evfeventInfo.library}/${evfeventInfo.object}.` + NEWLINE);
-                            refreshDiagnosticsFromServer(instance, evfeventInfo);
+                            refreshDiagnosticsFromServer(instance, evfeventInfo, uri);
                             problemsFetched = true;
                           } else {
                             writeEmitter.fire(`*EVENTF not found in command string. Not fetching errors for ${evfeventInfo.library}/${evfeventInfo.object}.` + NEWLINE);
