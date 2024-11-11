@@ -1,13 +1,11 @@
 import assert from "assert";
-import tmp from 'tmp';
-import util, { TextDecoder } from 'util';
-import { Uri, workspace } from "vscode";
+import { TextDecoder } from 'util';
+import { workspace } from "vscode";
 import { TestSuite } from ".";
 import { Tools } from "../api/Tools";
 import { instance } from "../instantiate";
-import { CommandResult, IBMiObject } from "../typings";
+import { IBMiObject } from "../typings";
 import { getMemberUri } from "../filesystems/qsys/QSysFs";
-import path from "path";
 import IBMi from "../api/IBMi";
 
 const contents = {
@@ -18,6 +16,63 @@ const contents = {
   '290': [`ｦｯ!ﾓﾄｴﾜﾈﾁｾ`, `Hello world`, `ｦｯ!ﾓﾄｴﾜﾈﾁｾ`],
   // '420': [`Hello world`, `ص ث ب ﻷ`],
   '420': [`Hello world`, `ص ث ب`],
+}
+
+const testData = {
+  '273': {
+    library: 'AÜ§#$%Ä',
+    libraryText: '§#$öße',
+    object: 'àáãÄ£ø',
+    objectText: 'Üä$öß',
+    member: '§#$MAN',
+    memberText: '§#$öße',
+    memberType: 'CBLLE'
+  },
+  '935': {
+    library: '我能吞下',
+    libraryText: '我能吞下',
+    object: '㐀᠀ༀꀀ',
+    objectText: '㐀᠀ༀꀀ',
+    member: '伤身体测',
+    memberText: '伤身体测',
+    memberType: 'CBLLE'
+  },
+  '937': {
+    library: '陰陽學說',
+    libraryText: '然的理性',
+    object: '是古人認',
+    objectText: '知識人認',
+    member: '識觀察自',
+    memberText: '認識觀察',
+    memberType: 'CBLLE'
+  },
+  '284': {
+    library: 'üóíñ',
+    libraryText: 'üóíñ',
+    object: 'üóíÑ',
+    objectText: 'üóíÑ',
+    member: 'üóíñ',
+    memberText: 'üóíñ',
+    memberType: 'CBLLE'
+  },
+  '5035': {
+    library: 'ｱｲｳｴ',
+    libraryText: 'ｶｷｱｲ',
+    object: 'ｵｶｷｱ',
+    objectText: 'ｳｴｵｶ',
+    member: 'ｲｳｴｵ',
+    memberText: 'ｷｳｴｵ',
+    memberType: 'CBLLE'
+  },
+  '933': {
+    library: '나는유리',
+    libraryText: '나는유리',
+    object: '를먹을유',
+    objectText: '를먹을유',
+    member: '리를는유',
+    memberText: '리를는유',
+    memberType: 'CBLLE'
+  }
 }
 
 const rtlEncodings = [`420`];
@@ -228,6 +283,38 @@ export const EncodingSuite: TestSuite = {
           assert.deepStrictEqual(fileContent, lines);
         }
       }
-    }))
+    })),
+
+    ...Object.keys(testData).map(ccsid => {
+      return {
+        name: `Object name and text with CCSID ${ccsid}`, test: async () => {
+          const connection = instance.getConnection();
+          const content = instance.getContent();
+          const test = testData[ccsid as keyof typeof testData];
+
+          if (connection && content && connection.getEncoding().ccsid === Number(ccsid)) {
+            const crtlibRes = await connection!.runCommand({ command: `CRTLIB LIB("${test.library}") TEXT("${test.libraryText}")`, noLibList: true, environment: "ile" });
+            const crtsrcpfRes = await connection!.runCommand({ command: `CRTSRCPF FILE("${test.library}"/"${test.object}") RCDLEN(112) CCSID(${ccsid}) TEXT("${test.objectText}")`, noLibList: true, environment: "ile" });
+            const addpfmRes = await connection!.runCommand({ command: `ADDPFM FILE("${test.library}"/"${test.object}") MBR("${test.member}") SRCTYPE(${test.memberType}) TEXT("${test.memberText}")`, noLibList: true, environment: "ile" })
+            const libraries = await content!. getObjectList({ library: `"${test.library}"`, types: ['*LIB'] });
+            const objects = await content!.getObjectList({ library: `"${test.library}"`, object: `"${test.object}"` });
+            const members = await content!.getMemberList({ library: `"${test.library}"`, sourceFile: `"${test.object}"`, members: `"${test.member}"` });
+
+            //TODO: Uncomment once CCSID issues have been investigated and resolved
+            // const dltLib = await connection!.runCommand({ command: `DLTLIB LIB("${test.library}")`, noLibList: true, environment: "ile" });
+
+            assert.strictEqual(libraries.length, 1);
+            assert.strictEqual(libraries[0].library, test.library);
+            assert.strictEqual(libraries[0].text, test.libraryText);
+            assert.strictEqual(objects.length, 1);
+            assert.strictEqual(objects[0].name, test.object);
+            assert.strictEqual(objects[0].text, test.objectText);
+            assert.strictEqual(members.length, 1);
+            assert.strictEqual(members[0].name, test.member);
+            assert.strictEqual(members[0].text, test.memberText);
+          }
+        }
+      }
+    })
   ]
 };
