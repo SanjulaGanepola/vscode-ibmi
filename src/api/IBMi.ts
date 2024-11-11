@@ -1349,6 +1349,10 @@ export default class IBMi {
    * @param name
    */
   upperCaseName(name: string) {
+    if (name.startsWith(`"`) && name.endsWith(`"`)) {
+      return name;
+    }
+    
     if (this.dangerousVariants && new RegExp(`[${this.variantChars.local}]`).test(name)) {
       const upperCased = [];
       for (const char of name) {
